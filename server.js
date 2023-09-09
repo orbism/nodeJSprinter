@@ -1,42 +1,48 @@
-// server.js
 const express = require('express');
 const cors = require('cors');
-const printer = require('printer');
 const app = express();
 const port = 3001;
 
-const printToLabelPrinter = (content) => {
-  try {
-    // Assuming content is directly printable, but you might need to adapt depending on data type/format
-    printer.printDirect({
-      data: content,
-      printer: 'Brother QL-800',  // Explicitly specify the printer name
-      type: 'RAW', // Send raw data to printer
-      success: function(jobID) {
-        console.log(`Sent to printer with ID: ${jobID}`);
-      },
-      error: function(err) {
-        throw err;
-      }
-    });
-  } catch (error) {
-    console.error('Failed to print', error);
-    throw error;
+const ThermalPrinter = require("node-thermal-printer").printer;
+const Types = require("node-thermal-printer").types;
+
+let printer = new ThermalPrinter({
+  type: Types.BROTHER,   // Set type to BROTHER
+  interface: 'tcp://localhost',  // This needs to be adjusted based on your printer's connection. If it's USB, you might need another method to communicate.
+  options: {
+    timeout: 1000
+  },
+  width: 62,    // The Brother QL-800 has a max print width of 62mm
+//  characterSet: 'SCHARSET_USA'
+});
+
+const printToLabelPrinter = async (content) => {
+  let isConnected = await printer.isPrinterConnected();
+  if (!isConnected) {
+    throw new Error("Printer not connected");
   }
+
+  printer.setTextDoubleHeight();
+  printer.setTextDoubleWidth();
+  printer.println(content);
+  printer.cut();
+
+  let execute = await printer.execute();
+  console.log("Print done:", execute);
 };
+
 
 // Use the cors middleware and allow all origins
 app.use(cors());
 
 app.use(express.json());
 
-app.post('/print', (req, res) => {
+app.post('/print', async (req, res) => {
   const { content } = req.body;
 
   try {
-    printToLabelPrinter(content);  // Print once
-    printToLabelPrinter(content);  // Print second copy
-
+    await printToLabelPrinter(content);  // Print once
+    await printToLabelPrinter(content);  // Print second copy
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

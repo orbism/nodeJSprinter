@@ -8,7 +8,8 @@ const Types = require("node-thermal-printer").types;
 
 let printer = new ThermalPrinter({
   type: Types.BROTHER,   // Set type to BROTHER
-  interface: 'tcp://localhost',  // This needs to be adjusted based on your printer's connection. If it's USB, you might need another method to communicate.
+  interface: 'Brother QL-800',  
+//interface: 'tcp://localhost',  // This needs to be adjusted based on your printer's connection. If it's USB, you might need another method to communicate.
   options: {
     timeout: 1000
   },
